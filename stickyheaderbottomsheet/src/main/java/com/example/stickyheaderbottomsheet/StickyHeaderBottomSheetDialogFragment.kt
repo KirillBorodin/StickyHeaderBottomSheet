@@ -41,9 +41,10 @@ abstract class StickyHeaderBottomSheetDialogFragment : BottomSheetDialogFragment
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog =  super.onCreateDialog(savedInstanceState) as BottomSheetDialog
+        val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
         dialog.setOnShowListener {
-            val bottomSheetFrameLayout = (it as BottomSheetDialog).findViewById<FrameLayout>(R.id.design_bottom_sheet)
+            val bottomSheetFrameLayout =
+                (it as BottomSheetDialog).findViewById<FrameLayout>(R.id.design_bottom_sheet)
             bottomSheetFrameLayout?.let { fl ->
                 bottomSheetBehavior = BottomSheetBehavior.from(fl)
                 bottomSheetBehavior?.peekHeight = (0.5 * getWindowsHeight()).toInt()
@@ -73,7 +74,7 @@ abstract class StickyHeaderBottomSheetDialogFragment : BottomSheetDialogFragment
     private fun setupHeaderAndContent() {
         headerView = getHeaderView()
         contentRecyclerView = getContentRecyclerView()
-        updateBottomSheetHeight(true)
+        updateBottomSheetHeight()
         setupBottomSheetScrollBehavior()
     }
 
@@ -94,26 +95,22 @@ abstract class StickyHeaderBottomSheetDialogFragment : BottomSheetDialogFragment
                 }
             }
         })
-        setupTouchListenerOnHeader()
+        setupDragListenerOnHeader()
     }
 
-    private fun setupTouchListenerOnHeader() {
-        headerView.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                if (event?.action == MotionEvent.ACTION_DOWN) {
-                    bottomSheetBehavior?.isDraggable = true
-                } else if (event?.action == MotionEvent.ACTION_UP) {
-                    bottomSheetBehavior?.isDraggable = bottomSheetBehavior?.state != STATE_EXPANDED
-                    v?.performClick()
-                }
-                return true
+    private fun setupDragListenerOnHeader() {
+        headerView.setOnDragListener { _, event ->
+            bottomSheetBehavior?.isDraggable = true
+            if (event?.action == MotionEvent.ACTION_UP) {
+                bottomSheetBehavior?.isDraggable = bottomSheetBehavior?.state != STATE_EXPANDED
             }
-        })
+            true
+        }
     }
 
 
     private fun getFirstVisibleItemPosition(layoutManager: RecyclerView.LayoutManager?): Int {
-        return  when (layoutManager) {
+        return when (layoutManager) {
             is GridLayoutManager -> layoutManager.findFirstCompletelyVisibleItemPosition()
             is LinearLayoutManager -> layoutManager.findFirstCompletelyVisibleItemPosition()
             else -> 0
@@ -125,19 +122,9 @@ abstract class StickyHeaderBottomSheetDialogFragment : BottomSheetDialogFragment
         handler.removeCallbacksAndMessages(null)
     }
 
-    /**
-     * This enables/disables the bottom sheet to expand while scrolling the recycler view.
-     * @param shouldMakeScrollable true, if you want the bottom sheet to expand while scrolling recyclerview,
-     * false to keep the bottom sheet fixed
-     */
-    protected fun updateBottomSheetHeight(shouldMakeScrollable: Boolean) {
+    private fun updateBottomSheetHeight() {
         handler.postDelayed({
-            val recyclerViewNewHeight = if (shouldMakeScrollable) {
-                val headerHeight = headerView.height
-                getWindowsHeight() - headerHeight
-            } else {
-                RecyclerView.LayoutParams.WRAP_CONTENT
-            }
+            val recyclerViewNewHeight = getWindowsHeight() - headerView.height
 
             val layoutParams = contentRecyclerView.layoutParams
             layoutParams.height = recyclerViewNewHeight
@@ -151,17 +138,17 @@ abstract class StickyHeaderBottomSheetDialogFragment : BottomSheetDialogFragment
      * The entire layout should be divided into 2 parts, header and content recycler view
      * @return layout resource file: Int
      */
-    abstract fun getContentView() : Int
+    abstract fun getContentView(): Int
 
     /**
      * Returns the view acting as the header for the bottom sheet. This sticks on the top of the screen
      * @return view: View
      */
-    abstract fun getHeaderView() : View
+    abstract fun getHeaderView(): View
 
     /**
      * Returns the recycler view that acts as a content of the bottom sheet
      * @return recyclerview: RecyclerView
      */
-    abstract fun getContentRecyclerView() : RecyclerView
+    abstract fun getContentRecyclerView(): RecyclerView
 }
